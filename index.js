@@ -4,9 +4,9 @@ import fs from 'fs'
 //После теста загрузка для текстового файла в 10.8 ГБ используямая память повышалась до 300-350мб. 
 //Загрузка для файла в 10.8 ГБ составила 14:39.159 (m:ss.mmm)
 const chunk_size = 15*1024*1024;
-const file="test.txt";
+const file="test_exmpl.txt";
 const buffer = Buffer.alloc(chunk_size);
-const writeStream = fs.createWriteStream("result.txt");
+const writeStream = fs.createWriteStream("result_exmpl.txt");
 
 console.time("timer");
 fs.open(file,'r',(err,fd)=>{    

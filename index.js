@@ -8,7 +8,7 @@ const file="test_exmpl.txt";
 const buffer = Buffer.alloc(chunk_size);
 const writeStream = fs.createWriteStream("result_exmpl.txt");
 
-console.time("timer");
+console.time("Время");
 fs.open(file,'r',(err,fd)=>{    
     if(err){
         throw err;
@@ -27,14 +27,14 @@ fs.open(file,'r',(err,fd)=>{
             }
 
             if(bread === 0){
-                console.log("is done");
+                console.log("Конец загрузки!");
                 fs.close(fd,(err)=>{
                     if(err){
                         throw err;
                     }
                 });
                 //выход
-                console.timeEnd("timer");
+                console.timeEnd("Время");
                 return;
             }
 

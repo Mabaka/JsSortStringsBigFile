@@ -1,55 +1,98 @@
 import fs from 'fs'
-//Чанк в 15 Мб позволил не превышать 200-250 мб
-//upd
-//После теста загрузка для текстового файла в 10.8 ГБ используямая память повышалась до 300-350мб. 
-//Загрузка для файла в 10.8 ГБ составила 14:39.159 (m:ss.mmm)
-const chunk_size = 15*1024*1024;
-const file="test_exmpl.txt";
+import os from 'os'
+
+const chunk_size = 4 * 1024 * 1024;
+const file = "test_small.txt";
 const buffer = Buffer.alloc(chunk_size);
-const writeStream = fs.createWriteStream("result_exmpl.txt");
 
 console.time("Время");
-fs.open(file,'r',(err,fd)=>{    
-    if(err){
+
+try {
+    fs.mkdirSync(os.tmpdir + '\\temp_sorted\\');
+} catch (error) {
+
+
+    fs.stat(os.tmpdir + '\\temp_sorted\\', function(err) {        
+        if (!err) {
+            console.log('Уже создано');
+        }
+        else if (err.code === 'ENOENT') {
+            fs.mkdirSync(os.tmpdir + '\\temp_sorted\\');
+        }
+    });
+}
+
+fs.open(file, 'r', (err, fd) => {
+    if (err) {
         throw err;
     }
 
-    function read(){
-        
-        function sort(str){            
-            //избегаем создание переменных
-            return str.split("\r").map(item=>{return item.split("").sort().join("")+"\r"}).join("");            
+    let i = 1;
+    function read() {
+
+        function sort(str) {            
+            return str.split("\n").sort().join("\n").replace(/[\r]+/g, '');
         }
-                
-        fs.read(fd,buffer,0,chunk_size,null,(err,bread)=>{
-            if(err){
+
+        fs.read(fd, buffer, 0, chunk_size, null, (err, bread) => {
+            if (err) {
                 throw err;
             }
 
-            if(bread === 0){
-                console.log("Конец загрузки!");
-                fs.close(fd,(err)=>{
-                    if(err){
+            if (bread === 0) {                
+                fs.close(fd, (err) => {
+                    if (err) {
                         throw err;
                     }
-                });
-                //выход
+                });                
+
+                let length = fs.readdirSync(os.tmpdir + '\\temp_sorted\\').length;                                
+                while (length > 0) {
+                    
+                    fs.readdirSync(os.tmpdir + '\\temp_sorted\\').forEach(file_name => {                        
+                        const file = os.tmpdir + '\\temp_sorted\\' + file_name;                        
+                        let data = fs.readFileSync(file, 'utf-8');
+                        if (data.length <= 0) {
+                            fs.unlinkSync(file);
+                            length--;
+                            return;
+                        }
+                        let data_splited = data.split("\n");
+                        let first = data_splited.shift();
+                        if (first.length <= 0) {
+                            fs.writeFileSync(file, data_splited.join("\n").replace(/[\r]+/g, ''));
+                            return;
+                        }
+                        fs.appendFileSync(os.tmpdir + '\\'+'unsorted.txt',first+'\n');
+                        fs.writeFileSync(file, data_splited.join("\n").replace(/[\r]+/g, ''));                        
+                    });
+                    
+                    const unsorted = fs.readFileSync(os.tmpdir + '\\'+'unsorted.txt').toString();
+                    const sorted_all = unsorted.split('\n').sort().join("\n");
+                    fs.unlinkSync(os.tmpdir + '\\'+'unsorted.txt');
+                    if (sorted_all.length !== 0) {
+                        fs.appendFileSync('result.txt', sorted_all + '\n');
+                    }
+                }
+
+                console.log("Конец загрузки!");
                 console.timeEnd("Время");
                 return;
             }
 
             let data;
 
-            if(bread < chunk_size){
+            if (bread < chunk_size) {
                 data = buffer.slice(0, bread);
-            }else{
-                data = buffer;                                
-            }            
-            const string_data_sorted = sort(data.toString());                        
-            writeStream.write(string_data_sorted);            
-            //рекурсия            
-            read();            
+            } else {
+                data = buffer;
+            }
+            const string_data_sorted = sort(data.toString());
+            fs.writeFileSync(os.tmpdir + '\\temp_sorted\\' + i + '.txt', string_data_sorted);
+
+            i++;            
+            read();
         });
     }
-    read();    
+    read();
 });
